@@ -1,0 +1,63 @@
+[VLLM] Uruchamianie: /media/black/ext4/venv/inerence/bin/vllm serve /media/black/modele/llama --host 127.0.0.1 --port 8000 --gpu-memory-utilization 0.9 --trust-remote-code
+[VLLM] Proces uruchomiony
+[VLLM] (APIServer pid=113018) INFO 05-06 15:55:00 [utils.py:299] 
+(APIServer pid=113018) INFO 05-06 15:55:00 [utils.py:299]        █     █     █▄   ▄█
+(APIServer pid=113018) INFO 05-06 15:55:00 [utils.py:299]  ▄▄ ▄█ █     █     █ ▀▄▀ █  version 0.19.1
+(APIServer pid=113018) INFO 05-06 15:55:00 [utils.py:299]   █▄█▀ █     █     █     █  model   /media/black/modele/llama
+(APIServer pid=113018) INFO 05-06 15:55:00 [utils.py:299]    ▀▀  ▀▀▀▀▀ ▀▀▀▀▀ ▀     ▀
+(APIServer pid=113018) INFO 05-06 15:55:00 [utils.py:299]
+[VLLM] (APIServer pid=113018) INFO 05-06 15:55:00 [utils.py:233] non-default args: {'model_tag': '/media/black/modele/llama', 'host': '127.0.0.1', 'model': '/media/black/modele/llama', 'trust_remote_code': True}
+[VLLM] (APIServer pid=113018) Traceback (most recent call last):
+(APIServer pid=113018)   File "/media/black/ext4/venv/inerence/bin/vllm", line 8, in <module>
+[VLLM] (APIServer pid=113018)     sys.exit(main())
+(APIServer pid=113018)              ^^^^^^
+(APIServer pid=113018)   File "/media/black/ext4/venv/inerence/lib/python3.12/site-packages/vllm/entrypoints/cli/main.py", line 75, in main
+(APIServer pid=113018)     args.dispatch_function(args)
+(APIServer pid=113018)   File "/media/black/ext4/venv/inerence/lib/python3.12/site-packages/vllm/entrypoints/cli/serve.py", line 122, in cmd
+(APIServer pid=113018)     uvloop.run(run_server(args))
+(APIServer pid=113018)   File "/media/black/ext4/venv/inerence/lib/python3.12/site-packages/uvloop/__init__.py", line 96, in run
+(APIServer pid=113018)     return __asyncio.run(
+(APIServer pid=113018)            ^^^^^^^^^^^^^^
+(APIServer pid=113018)   File "/usr/lib/python3.12/asyncio/runners.py", line 194, in run
+(APIServer pid=113018)     return runner.run(main)
+(APIServer pid=113018)            ^^^^^^^^^^^^^^^^
+(APIServer pid=113018)   File "/usr/lib/python3.12/asyncio/runners.py", line 118, in run
+(APIServer pid=113018)     return self._loop.run_until_complete(task)
+(APIServer pid=113018)            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+(APIServer pid=113018)   File "uvloop/loop.pyx", line 1518, in uvloop.loop.Loop.run_until_complete
+(APIServer pid=113018)   File "/media/black/ext4/venv/inerence/lib/python3.12/site-packages/uvloop/__init__.py", line 48, in wrapper
+(APIServer pid=113018)     return await main
+(APIServer pid=113018)            ^^^^^^^^^^
+(APIServer pid=113018)   File "/media/black/ext4/venv/inerence/lib/python3.12/site-packages/vllm/entrypoints/openai/api_server.py", line 672, in run_server
+[VLLM] (APIServer pid=113018)     await run_server_worker(listen_address, sock, args, **uvicorn_kwargs)
+(APIServer pid=113018)   File "/media/black/ext4/venv/inerence/lib/python3.12/site-packages/vllm/entrypoints/openai/api_server.py", line 686, in run_server_worker
+(APIServer pid=113018)     async with build_async_engine_client(
+(APIServer pid=113018)   File "/usr/lib/python3.12/contextlib.py", line 210, in __aenter__
+(APIServer pid=113018)     return await anext(self.gen)
+(APIServer pid=113018)            ^^^^^^^^^^^^^^^^^^^^^
+(APIServer pid=113018)   File "/media/black/ext4/venv/inerence/lib/python3.12/site-packages/vllm/entrypoints/openai/api_server.py", line 100, in build_async_engine_client
+(APIServer pid=113018)     async with build_async_engine_client_from_engine_args(
+(APIServer pid=113018)   File "/usr/lib/python3.12/contextlib.py", line 210, in __aenter__
+(APIServer pid=113018)     return await anext(self.gen)
+(APIServer pid=113018)            ^^^^^^^^^^^^^^^^^^^^^
+(APIServer pid=113018)   File "/media/black/ext4/venv/inerence/lib/python3.12/site-packages/vllm/entrypoints/openai/api_server.py", line 124, in build_async_engine_client_from_engine_args
+(APIServer pid=113018)     vllm_config = engine_args.create_engine_config(usage_context=usage_context)
+(APIServer pid=113018)                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+(APIServer pid=113018)   File "/media/black/ext4/venv/inerence/lib/python3.12/site-packages/vllm/engine/arg_utils.py", line 1549, in create_engine_config
+(APIServer pid=113018)     model_config = self.create_model_config()
+(APIServer pid=113018)                    ^^^^^^^^^^^^^^^^^^^^^^^^^^
+(APIServer pid=113018)   File "/media/black/ext4/venv/inerence/lib/python3.12/site-packages/vllm/engine/arg_utils.py", line 1398, in create_model_config
+(APIServer pid=113018)     return ModelConfig(
+(APIServer pid=113018)            ^^^^^^^^^^^^
+(APIServer pid=113018)   File "/media/black/ext4/venv/inerence/lib/python3.12/site-packages/pydantic/_internal/_dataclasses.py", line 121, in __init__
+(APIServer pid=113018)     s.__pydantic_validator__.validate_python(ArgsKwargs(args, kwargs), self_instance=s)
+(APIServer pid=113018) pydantic_core._pydantic_core.ValidationError: 1 validation error for ModelConfig
+(APIServer pid=113018)   Value error, Invalid repository ID or local directory specified: '/media/black/modele/llama'.
+(APIServer pid=113018) Please verify the following requirements:
+(APIServer pid=113018) 1. Provide a valid Hugging Face repository ID.
+(APIServer pid=113018) 2. Specify a local directory that contains a recognized configuration file.
+(APIServer pid=113018)    - For Hugging Face models: ensure the presence of a 'config.json'.
+(APIServer pid=113018)    - For Mistral models: ensure the presence of a 'params.json'.
+(APIServer pid=113018)  [type=value_error, input_value=ArgsKwargs((), {'model': ...nderer_num_workers': 1}), input_type=ArgsKwargs]
+(APIServer pid=113018)     For further information visit https://errors.pydantic.dev/2.13/v/value_error
+[VLLM] Zakończony (exit code: 1)
