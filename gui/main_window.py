@@ -132,6 +132,7 @@ class ModelDetailWidget(QWidget):
         self.sglang_stop_clicked.emit()
 
     def _on_llama_start(self):
+        print("[DEBUG _on_llama_start] Called, _current_model =", self._current_model)
         if self._current_model:
             self.llama_start_clicked.emit(self._current_model)
 
