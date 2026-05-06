@@ -1007,6 +1007,10 @@ class MainWindow(QMainWindow):
             cmd_parts.append("-v")
 
         cmd = " ".join(cmd_parts)
+
+        # DEBUG: Print command before launch
+        print(f"[DEBUG _launch_llama] CMD: {cmd}")
+
         self._show_command_and_launch("llama", cmd, info)
 
     def _show_launch_params_dialog(self, engine: str) -> None:
