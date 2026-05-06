@@ -535,6 +535,8 @@ class MainWindow(QMainWindow):
                             status.setText("✅")
                             status.setStyleSheet("color: #4caf50; font-size: 14px;")
                             self.llama_path_edit.setText(cand)  # Update to full path
+                            # Zapisz wykrytą ścieżkę do config
+                            self._save_config_from_ui()
                             break
                     else:
                         status.setText("⚠️")
@@ -545,6 +547,9 @@ class MainWindow(QMainWindow):
             else:
                 status.setText("❌")
                 status.setStyleSheet("color: #f44336; font-size: 14px;")
+            # Zapisz ścieżkę llama do config po wykryciu
+            if config_key == "llama_path" and os.path.exists(path):
+                self._save_config_from_ui()
             return
 
         if config_key == "models_dir":
@@ -883,6 +888,13 @@ class MainWindow(QMainWindow):
         """Generuje i uruchamia komendę llama.cpp."""
         cfg = config.load_config()
         llama_path = cfg.get("llama", {}).get("binary_path", "")
+
+        # DEBUG: Show what we read from config
+        print(f"[DEBUG LLAAMA] llama_path from config = '{llama_path}'")
+        print(
+            f"[DEBUG LLAAMA] llama_path exists = {Path(llama_path).exists() if llama_path else 'N/A'}"
+        )
+
         if not llama_path or not Path(llama_path).exists():
             self.status("Błąd: Nie ustawiono ścieżki do llama.cpp", duration=5)
             return
