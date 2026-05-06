@@ -150,6 +150,10 @@ Rozmiar: {info.size_human}
 Format: {info.format.value}
 Engine: {info.engine_support.value}
 """
+        # DEBUG: Show GGUF info
+        print(
+            f"[DEBUG set_model_info] name={info.name}, path={info.path}, gguf_file={info.gguf_file}"
+        )
         if info.gguf_file:
             text += f"GGUF file: {info.gguf_file}\n"
 
