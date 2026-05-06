@@ -692,6 +692,15 @@ def scan_model_folder(folder_path: str) -> Optional[ModelInfo]:
             if len(files) > 50:  # limit
                 break
 
+    # GGUF: znajdź największy plik .gguf (główny model)
+    gguf_file_path = None
+    if has_gguf:
+        gguf_candidates = list(folder.rglob("*.gguf"))
+        if gguf_candidates:
+            # wybierz plik o największym rozmiarze
+            biggest = max(gguf_candidates, key=lambda p: p.stat().st_size)
+            gguf_file_path = str(biggest)
+
     # Utwórz ModelInfo
     info = ModelInfo(
         name=folder.name,
@@ -701,6 +710,8 @@ def scan_model_folder(folder_path: str) -> Optional[ModelInfo]:
         engine_support=EngineSupport.UNKNOWN,
         files=files,
     )
+    # Przypisz ścieżkę do pliku gguf
+    info.gguf_file = gguf_file_path
 
     # Wczytaj config.json
     if has_config:

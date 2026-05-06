@@ -5,7 +5,7 @@ import sys
 
 from PyQt6.QtWidgets import QApplication
 
-from gui.main_window import MainWindow
+from gui.main_window_broken import MainWindow
 from gui.styles import DARK_THEME
 
 
