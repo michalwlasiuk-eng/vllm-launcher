@@ -903,6 +903,18 @@ class MainWindow(QMainWindow):
         if threads != -1:
             cmd_parts += ["-t", str(threads)]
 
+        threads_batch = params.get("threads_batch", -1)
+        if threads_batch != -1:
+            cmd_parts += ["-tb", str(threads_batch)]
+
+        batch_size = params.get("batch_size", 2048)
+        if batch_size != 2048:
+            cmd_parts += ["-b", str(batch_size)]
+
+        ubatch_size = params.get("ubatch_size", 512)
+        if ubatch_size != 512:
+            cmd_parts += ["-ub", str(ubatch_size)]
+
         gpu_layers = params.get("gpu_layers", -1)
         if gpu_layers > 0:
             cmd_parts += ["-ngl", str(gpu_layers)]
@@ -923,6 +935,70 @@ class MainWindow(QMainWindow):
         if cache_type_v != "f16":
             cmd_parts += ["-ctv", cache_type_v]
 
+        kv_offload = params.get("kv_offload", True)
+        if not kv_offload:
+            cmd_parts.append("--no-kv-offload")
+
+        rope_scaling = params.get("rope_scaling", "linear")
+        if rope_scaling and rope_scaling not in ("", "none"):
+            cmd_parts += ["--rope-scaling", rope_scaling]
+
+        rope_freq_base = params.get("rope_freq_base", 0)
+        if rope_freq_base > 0:
+            cmd_parts += ["--rope-freq-base", str(rope_freq_base)]
+
+        rope_scale = params.get("rope_scale", 1.0)
+        if rope_scale != 1.0:
+            cmd_parts += ["--rope-scale", str(rope_scale)]
+
+        main_gpu = params.get("main_gpu", 0)
+        if main_gpu != 0:
+            cmd_parts += ["-mg", str(main_gpu)]
+
+        tensor_split = params.get("tensor_split", "")
+        if tensor_split.strip():
+            cmd_parts += ["-ts", tensor_split.strip()]
+
+        split_mode = params.get("split_mode", "layer")
+        if split_mode != "layer":
+            cmd_parts += ["-sm", split_mode]
+
+        if params.get("mlock", False):
+            cmd_parts.append("--mlock")
+
+        if params.get("mmap", True):
+            cmd_parts.append("--mmap")
+        else:
+            cmd_parts.append("--no-mmap")
+
+        if params.get("no_direct_io", False):
+            cmd_parts.append("--no-direct-io")
+
+        if params.get("numa", False):
+            cmd_parts.append("--numa")
+
+        lora = params.get("lora", "")
+        if lora.strip():
+            cmd_parts += ["--lora", lora.strip()]
+
+        control_vector = params.get("control_vector", "")
+        if control_vector.strip():
+            cmd_parts += ["--control-vector", control_vector.strip()]
+
+        keep = params.get("keep", 0)
+        if keep != 0:
+            cmd_parts += ["--keep", str(keep)]
+
+        if params.get("log_disable", False):
+            cmd_parts.append("--log-disable")
+
+        log_file = params.get("log_file", "")
+        if log_file.strip():
+            cmd_parts += ["--log-file", log_file.strip()]
+
+        if params.get("no_escape", False):
+            cmd_parts.append("--no-escape")
+
         if params.get("verbose", False):
             cmd_parts.append("-v")
 
@@ -939,10 +1015,13 @@ class MainWindow(QMainWindow):
             QDoubleSpinBox,
             QFormLayout,
             QGroupBox,
+            QHBoxLayout,
             QLabel,
             QLineEdit,
             QSpinBox,
+            QTabWidget,
             QVBoxLayout,
+            QWidget,
         )
 
         cfg = config.load_config()
@@ -950,9 +1029,9 @@ class MainWindow(QMainWindow):
 
         dlg = QDialog(self)
         dlg.setWindowTitle(f"Parametry — {engine}")
-        dlg.resize(450, 500)
+        dlg.resize(500, 600)
 
-        layout = QVBoxLayout(dlg)
+        main_layout = QVBoxLayout(dlg)
 
         # Sieć
         net_group = QGroupBox("Sieć")
@@ -966,38 +1045,50 @@ class MainWindow(QMainWindow):
         port_spin.setValue(params.get("port", 8080 if engine == "llama" else 8000))
         net_layout.addRow("Port:", port_spin)
 
-        layout.addWidget(net_group)
+        main_layout.addWidget(net_group)
 
         if engine == "llama":
-            # Llama specific params
-            llama_group = QGroupBox("Llama.cpp")
-            llama_layout = QFormLayout(llama_group)
+            tabs = QTabWidget()
+
+            # --- Performance tab ---
+            perf_widget = QWidget()
+            perf_layout = QFormLayout(perf_widget)
 
             threads_spin = QSpinBox()
             threads_spin.setRange(-1, 128)
             threads_spin.setValue(params.get("threads", -1))
-            llama_layout.addRow("Threads (-t):", threads_spin)
+            perf_layout.addRow("Threads (-t):", threads_spin)
+
+            threads_batch_spin = QSpinBox()
+            threads_batch_spin.setRange(-1, 128)
+            threads_batch_spin.setValue(params.get("threads_batch", -1))
+            perf_layout.addRow("Threads Batch (-tb):", threads_batch_spin)
+
+            batch_spin = QSpinBox()
+            batch_spin.setRange(1, 8192)
+            batch_spin.setValue(params.get("batch_size", 2048))
+            perf_layout.addRow("Batch Size (-b):", batch_spin)
+
+            ubatch_spin = QSpinBox()
+            ubatch_spin.setRange(1, 8192)
+            ubatch_spin.setValue(params.get("ubatch_size", 512))
+            perf_layout.addRow("Ubatch Size (-ub):", ubatch_spin)
 
             ctx_spin = QSpinBox()
             ctx_spin.setRange(0, 131072)
             ctx_spin.setSingleStep(1024)
             ctx_spin.setValue(params.get("ctx_size", 0))
-            llama_layout.addRow("Context (-c):", ctx_spin)
-
-            gpu_spin = QSpinBox()
-            gpu_spin.setRange(-1, 128)
-            gpu_spin.setValue(params.get("gpu_layers", -1))
-            llama_layout.addRow("GPU Layers (-ngl):", gpu_spin)
+            perf_layout.addRow("Context (-c):", ctx_spin)
 
             n_pred_spin = QSpinBox()
             n_pred_spin.setRange(-1, 16384)
             n_pred_spin.setValue(params.get("n_predict", -1))
-            llama_layout.addRow("N Predict (-n):", n_pred_spin)
+            perf_layout.addRow("N Predict (-n):", n_pred_spin)
 
             flash_combo = QComboBox()
             flash_combo.addItems(["auto", "on", "off"])
             flash_combo.setCurrentText(params.get("flash_attn", "auto"))
-            llama_layout.addRow("Flash Attn (-fa):", flash_combo)
+            perf_layout.addRow("Flash Attn (-fa):", flash_combo)
 
             cache_k_combo = QComboBox()
             cache_k_combo.addItems(
@@ -1017,7 +1108,7 @@ class MainWindow(QMainWindow):
                 ]
             )
             cache_k_combo.setCurrentText(params.get("cache_type_k", "f16"))
-            llama_layout.addRow("Cache K (-ctk):", cache_k_combo)
+            perf_layout.addRow("Cache K (-ctk):", cache_k_combo)
 
             cache_v_combo = QComboBox()
             cache_v_combo.addItems(
@@ -1037,13 +1128,103 @@ class MainWindow(QMainWindow):
                 ]
             )
             cache_v_combo.setCurrentText(params.get("cache_type_v", "f16"))
-            llama_layout.addRow("Cache V (-ctv):", cache_v_combo)
+            perf_layout.addRow("Cache V (-ctv):", cache_v_combo)
 
-            verbose_cb = QCheckBox("Verbose (-v)")
+            mmap_cb = QCheckBox()
+            mmap_cb.setChecked(params.get("mmap", True))
+            perf_layout.addRow("mmap (--mmap):", mmap_cb)
+
+            mlock_cb = QCheckBox()
+            mlock_cb.setChecked(params.get("mlock", False))
+            perf_layout.addRow("mlock (--mlock):", mlock_cb)
+
+            kv_offload_cb = QCheckBox()
+            kv_offload_cb.setChecked(params.get("kv_offload", True))
+            perf_layout.addRow("KV Offload:", kv_offload_cb)
+
+            no_direct_io_cb = QCheckBox()
+            no_direct_io_cb.setChecked(params.get("no_direct_io", False))
+            perf_layout.addRow("No Direct IO:", no_direct_io_cb)
+
+            numa_cb = QCheckBox()
+            numa_cb.setChecked(params.get("numa", False))
+            perf_layout.addRow("NUMA (--numa):", numa_cb)
+
+            tabs.addTab(perf_widget, "Performance")
+
+            # --- GPU tab ---
+            gpu_widget = QWidget()
+            gpu_layout = QFormLayout(gpu_widget)
+
+            gpu_spin = QSpinBox()
+            gpu_spin.setRange(-1, 256)
+            gpu_spin.setValue(params.get("gpu_layers", -1))
+            gpu_layout.addRow("GPU Layers (-ngl):", gpu_spin)
+
+            main_gpu_spin = QSpinBox()
+            main_gpu_spin.setRange(0, 7)
+            main_gpu_spin.setValue(params.get("main_gpu", 0))
+            gpu_layout.addRow("Main GPU (-mg):", main_gpu_spin)
+
+            tensor_split_edit = QLineEdit(params.get("tensor_split", ""))
+            gpu_layout.addRow("Tensor Split (-ts):", tensor_split_edit)
+
+            split_mode_combo = QComboBox()
+            split_mode_combo.addItems(["none", "layer", "row", "tensor"])
+            split_mode_combo.setCurrentText(params.get("split_mode", "layer"))
+            gpu_layout.addRow("Split Mode (-sm):", split_mode_combo)
+
+            tabs.addTab(gpu_widget, "GPU")
+
+            # --- Advanced tab ---
+            adv_widget = QWidget()
+            adv_layout = QFormLayout(adv_widget)
+
+            rope_scaling_combo = QComboBox()
+            rope_scaling_combo.addItems(["", "none", "linear", "yarn"])
+            rope_scaling_combo.setCurrentText(params.get("rope_scaling", "linear"))
+            adv_layout.addRow("Rope Scaling:", rope_scaling_combo)
+
+            rope_freq_base_spin = QSpinBox()
+            rope_freq_base_spin.setRange(0, 10000000)
+            rope_freq_base_spin.setValue(params.get("rope_freq_base", 0))
+            adv_layout.addRow("Rope Freq Base:", rope_freq_base_spin)
+
+            rope_scale_spin = QDoubleSpinBox()
+            rope_scale_spin.setRange(0.1, 100.0)
+            rope_scale_spin.setSingleStep(0.1)
+            rope_scale_spin.setValue(params.get("rope_scale", 1.0))
+            adv_layout.addRow("Rope Scale:", rope_scale_spin)
+
+            keep_spin = QSpinBox()
+            keep_spin.setRange(-1, 131072)
+            keep_spin.setValue(params.get("keep", 0))
+            adv_layout.addRow("Keep (--keep):", keep_spin)
+
+            lora_edit = QLineEdit(params.get("lora", ""))
+            adv_layout.addRow("LoRA (--lora):", lora_edit)
+
+            control_vector_edit = QLineEdit(params.get("control_vector", ""))
+            adv_layout.addRow("Control Vector:", control_vector_edit)
+
+            log_file_edit = QLineEdit(params.get("log_file", ""))
+            adv_layout.addRow("Log File (--log-file):", log_file_edit)
+
+            log_disable_cb = QCheckBox()
+            log_disable_cb.setChecked(params.get("log_disable", False))
+            adv_layout.addRow("Log Disable:", log_disable_cb)
+
+            verbose_cb = QCheckBox()
             verbose_cb.setChecked(params.get("verbose", False))
-            llama_layout.addRow("", verbose_cb)
+            adv_layout.addRow("Verbose (-v):", verbose_cb)
 
-            layout.addWidget(llama_group)
+            no_escape_cb = QCheckBox()
+            no_escape_cb.setChecked(params.get("no_escape", False))
+            adv_layout.addRow("No Escape:", no_escape_cb)
+
+            tabs.addTab(adv_widget, "Advanced")
+
+            main_layout.addWidget(tabs)
 
         elif engine == "vllm":
             vllm_group = QGroupBox("vLLM")
@@ -1069,7 +1250,7 @@ class MainWindow(QMainWindow):
             trust_cb.setChecked(params.get("trust_remote_code", True))
             vllm_layout.addRow("", trust_cb)
 
-            layout.addWidget(vllm_group)
+            main_layout.addWidget(vllm_group)
 
         elif engine == "sglang":
             sglang_group = QGroupBox("sglang")
@@ -1090,7 +1271,7 @@ class MainWindow(QMainWindow):
             trust_cb.setChecked(params.get("trust_remote_code", True))
             sglang_layout.addRow("", trust_cb)
 
-            layout.addWidget(sglang_group)
+            main_layout.addWidget(sglang_group)
 
         # Przyciski
         button_box = QDialogButtonBox(
@@ -1098,7 +1279,7 @@ class MainWindow(QMainWindow):
         )
         button_box.button(QDialogButtonBox.StandardButton.Ok).setText("Zapisz")
         button_box.button(QDialogButtonBox.StandardButton.Cancel).setText("Anuluj")
-        layout.addWidget(button_box)
+        main_layout.addWidget(button_box)
 
         def save_params():
             new_params = {
@@ -1107,12 +1288,32 @@ class MainWindow(QMainWindow):
             }
             if engine == "llama":
                 new_params["threads"] = threads_spin.value()
+                new_params["threads_batch"] = threads_batch_spin.value()
+                new_params["batch_size"] = batch_spin.value()
+                new_params["ubatch_size"] = ubatch_spin.value()
                 new_params["ctx_size"] = ctx_spin.value()
                 new_params["gpu_layers"] = gpu_spin.value()
+                new_params["main_gpu"] = main_gpu_spin.value()
+                new_params["tensor_split"] = tensor_split_edit.text().strip()
+                new_params["split_mode"] = split_mode_combo.currentText()
                 new_params["n_predict"] = n_pred_spin.value()
                 new_params["flash_attn"] = flash_combo.currentText()
                 new_params["cache_type_k"] = cache_k_combo.currentText()
                 new_params["cache_type_v"] = cache_v_combo.currentText()
+                new_params["kv_offload"] = kv_offload_cb.isChecked()
+                new_params["mmap"] = mmap_cb.isChecked()
+                new_params["mlock"] = mlock_cb.isChecked()
+                new_params["no_direct_io"] = no_direct_io_cb.isChecked()
+                new_params["numa"] = numa_cb.isChecked()
+                new_params["rope_scaling"] = rope_scaling_combo.currentText()
+                new_params["rope_freq_base"] = rope_freq_base_spin.value()
+                new_params["rope_scale"] = rope_scale_spin.value()
+                new_params["keep"] = keep_spin.value()
+                new_params["lora"] = lora_edit.text().strip()
+                new_params["control_vector"] = control_vector_edit.text().strip()
+                new_params["log_file"] = log_file_edit.text().strip()
+                new_params["log_disable"] = log_disable_cb.isChecked()
+                new_params["no_escape"] = no_escape_cb.isChecked()
                 new_params["verbose"] = verbose_cb.isChecked()
             elif engine == "vllm":
                 new_params["tensor_parallel_size"] = tp_spin.value()

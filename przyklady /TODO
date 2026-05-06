@@ -1,0 +1,32 @@
+# TODO - Naprawy w projekcie lau
+
+## Zrobione
+- [x] Naprawa błędów w `_parse_gguf_header()` (wielokrotne iteracje)
+- [x] **Bug #1 — typ wersji**: version czytany jako uint64 (8B) zamiast uint32 (4B) → version nigdy nie był 2 ani 3 → żadna gałąź parsowania się nie uruchamiała
+- [x] **Bug #2 — string length w v3**: `_read_gguf_value` czytał 4B (uint32) zamiast 8B (uint64) → 4-bajtowe przesunięcie po każdym stringu
+- [x] **Bug #3 — przechowywanie krotek**: `metadata[key] = value` zamiast `value[0]`
+- [x] **Bug #4 — guard GGUF_AVAILABLE**: blokował parsowanie gdy gguf library nieinstalowana
+- [x] **Bug #5 — tablice**: custom parser czytał tylko 5 elementów zamiast wszystkich → zepsuty offset dla kolejnych kluczy (np. po `tokenizer.ggml.tokens` z 262K wpisami)
+- [x] Pełne przepisanie `_parse_gguf_header` → używa `gguf.GGUFReader` (primary) lub custom parser (fallback)
+- [x] Custom parser: fixed-size arrays pomijane przez kalkulację, variable-size iterowane w całości
+- [x] Dodano `--alias` (kluczowe dla OpenAI-compatible API / opencode)
+- [x] Auto-wypełnianie aliasu z `general.name` przy wyborze modelu
+- [x] Przycisk "Copy API URL" → `http://host:port/v1` dla opencode
+
+## Zrobione (cd.)
+- [x] **VRAM monitor**: kolorowe paski per-GPU (zielony/żółty/czerwony), odświeżanie co 2s (serwer) / 8s (idle)
+- [x] **Prędkość tokenów**: parser wielu formatów logów (tok/s, n_tokens_second, t_token ms), wyświetlanie z kolorem
+- [x] **Tensor split suwaki**: auto-detekcja GPU przez nvidia-smi, suwaki 0-100 per karta zamiast ręcznego "1,1"
+- [x] **Auto-detect GPU count**: _detect_gpus() z nvidia-smi przy starcie
+- [x] Naprawa context_shift (usunięto błędny flag_off, prawidłowy typ checkbox)
+- [x] Naprawa cache_prompt (dodano flag_off --no-cache-prompt, domyślnie brak flagi)
+
+## Do zrobienia
+- [ ] Testowanie GUI (suwaki GPU, VRAM monitor, prędkość tokenów)
+- [ ] Naprawa problemów z profilem (jeśli nadal występują)
+
+## Uwagi
+- GGUF header: magic(4) + version(uint32=4) + tensor_count(uint64=8) + kv_count(uint64=8) → metadata_start=24
+- GGUF v3: string length = uint64 (8 bajtów)
+- opencode config: baseURL = `http://host:port/v1`, model = alias z `--alias`
+- GGUFReader (gguf library) obsługuje wszystkie edge cases poprawnie, custom parser jako fallback
