@@ -244,6 +244,9 @@ def scan_common_venv_locations() -> list[dict]:
 
                 has_vllm = any("vllm" in p for p in packages)
                 has_sglang = any("sglang" in p for p in packages)
+            except PermissionError:
+                # Skip directories we don't have access to
+                continue
             except Exception:
                 continue
 

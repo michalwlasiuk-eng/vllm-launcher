@@ -512,13 +512,35 @@ class MainWindow(QMainWindow):
             return
 
         if config_key == "llama_path":
-            # Sprawdź czy plik istnieje i jest wykonywalny
-            if os.path.isfile(path) and os.access(path, os.X_OK):
-                status.setText("✅")
-                status.setStyleSheet("color: #4caf50; font-size: 14px;")
-            elif os.path.isfile(path):
-                status.setText("⚠️")
-                status.setStyleSheet("color: #ff9800; font-size: 14px;")
+            # Sprawdź czy plik istnieje
+            if os.path.exists(path):
+                # Może być plikiem lub katalogiem (dla kompatybilności)
+                if os.path.isfile(path):
+                    if os.access(path, os.X_OK):
+                        status.setText("✅")
+                        status.setStyleSheet("color: #4caf50; font-size: 14px;")
+                    else:
+                        status.setText("⚠️")
+                        status.setStyleSheet("color: #ff9800; font-size: 14px;")
+                elif os.path.isdir(path):
+                    # Szukaj llama-server w katalogu
+                    candidates = [
+                        os.path.join(path, "llama-server"),
+                        os.path.join(path, "bin", "llama-server"),
+                        os.path.join(path, "build", "bin", "llama-server"),
+                    ]
+                    for cand in candidates:
+                        if os.path.isfile(cand) and os.access(cand, os.X_OK):
+                            status.setText("✅")
+                            status.setStyleSheet("color: #4caf50; font-size: 14px;")
+                            self.llama_path_edit.setText(cand)  # Update to full path
+                            break
+                    else:
+                        status.setText("⚠️")
+                        status.setStyleSheet("color: #ff9800; font-size: 14px;")
+                else:
+                    status.setText("❌")
+                    status.setStyleSheet("color: #f44336; font-size: 14px;")
             else:
                 status.setText("❌")
                 status.setStyleSheet("color: #f44336; font-size: 14px;")
@@ -906,6 +928,210 @@ class MainWindow(QMainWindow):
 
         cmd = " ".join(cmd_parts)
         self._show_command_and_launch("llama", cmd, info)
+
+    def _show_launch_params_dialog(self, engine: str) -> None:
+        """Pokazuje dialog z parametrami uruchomienia."""
+        from PyQt6.QtWidgets import (
+            QCheckBox,
+            QComboBox,
+            QDialog,
+            QDialogButtonBox,
+            QDoubleSpinBox,
+            QFormLayout,
+            QGroupBox,
+            QLabel,
+            QLineEdit,
+            QSpinBox,
+            QVBoxLayout,
+        )
+
+        cfg = config.load_config()
+        params = cfg.get(engine, {}).get("launch_params", {})
+
+        dlg = QDialog(self)
+        dlg.setWindowTitle(f"Parametry — {engine}")
+        dlg.resize(450, 500)
+
+        layout = QVBoxLayout(dlg)
+
+        # Sieć
+        net_group = QGroupBox("Sieć")
+        net_layout = QFormLayout(net_group)
+
+        host_edit = QLineEdit(params.get("host", "127.0.0.1"))
+        net_layout.addRow("Host:", host_edit)
+
+        port_spin = QSpinBox()
+        port_spin.setRange(1000, 65535)
+        port_spin.setValue(params.get("port", 8080 if engine == "llama" else 8000))
+        net_layout.addRow("Port:", port_spin)
+
+        layout.addWidget(net_group)
+
+        if engine == "llama":
+            # Llama specific params
+            llama_group = QGroupBox("Llama.cpp")
+            llama_layout = QFormLayout(llama_group)
+
+            threads_spin = QSpinBox()
+            threads_spin.setRange(-1, 128)
+            threads_spin.setValue(params.get("threads", -1))
+            llama_layout.addRow("Threads (-t):", threads_spin)
+
+            ctx_spin = QSpinBox()
+            ctx_spin.setRange(0, 131072)
+            ctx_spin.setSingleStep(1024)
+            ctx_spin.setValue(params.get("ctx_size", 0))
+            llama_layout.addRow("Context (-c):", ctx_spin)
+
+            gpu_spin = QSpinBox()
+            gpu_spin.setRange(-1, 128)
+            gpu_spin.setValue(params.get("gpu_layers", -1))
+            llama_layout.addRow("GPU Layers (-ngl):", gpu_spin)
+
+            n_pred_spin = QSpinBox()
+            n_pred_spin.setRange(-1, 16384)
+            n_pred_spin.setValue(params.get("n_predict", -1))
+            llama_layout.addRow("N Predict (-n):", n_pred_spin)
+
+            flash_combo = QComboBox()
+            flash_combo.addItems(["auto", "on", "off"])
+            flash_combo.setCurrentText(params.get("flash_attn", "auto"))
+            llama_layout.addRow("Flash Attn (-fa):", flash_combo)
+
+            cache_k_combo = QComboBox()
+            cache_k_combo.addItems(
+                [
+                    "f16",
+                    "f32",
+                    "bf16",
+                    "q8_0",
+                    "q4_0",
+                    "q4_1",
+                    "iq4_nl",
+                    "q5_0",
+                    "q5_1",
+                    "turbo2",
+                    "turbo3",
+                    "turbo4",
+                ]
+            )
+            cache_k_combo.setCurrentText(params.get("cache_type_k", "f16"))
+            llama_layout.addRow("Cache K (-ctk):", cache_k_combo)
+
+            cache_v_combo = QComboBox()
+            cache_v_combo.addItems(
+                [
+                    "f16",
+                    "f32",
+                    "bf16",
+                    "q8_0",
+                    "q4_0",
+                    "q4_1",
+                    "iq4_nl",
+                    "q5_0",
+                    "q5_1",
+                    "turbo2",
+                    "turbo3",
+                    "turbo4",
+                ]
+            )
+            cache_v_combo.setCurrentText(params.get("cache_type_v", "f16"))
+            llama_layout.addRow("Cache V (-ctv):", cache_v_combo)
+
+            verbose_cb = QCheckBox("Verbose (-v)")
+            verbose_cb.setChecked(params.get("verbose", False))
+            llama_layout.addRow("", verbose_cb)
+
+            layout.addWidget(llama_group)
+
+        elif engine == "vllm":
+            vllm_group = QGroupBox("vLLM")
+            vllm_layout = QFormLayout(vllm_group)
+
+            tp_spin = QSpinBox()
+            tp_spin.setRange(1, 8)
+            tp_spin.setValue(params.get("tensor_parallel_size", 1))
+            vllm_layout.addRow("Tensor Parallel:", tp_spin)
+
+            gpu_mem = QDoubleSpinBox()
+            gpu_mem.setRange(0.1, 1.0)
+            gpu_mem.setSingleStep(0.05)
+            gpu_mem.setValue(params.get("gpu_memory_utilization", 0.9))
+            vllm_layout.addRow("GPU Memory:", gpu_mem)
+
+            max_len_spin = QSpinBox()
+            max_len_spin.setRange(0, 131072)
+            max_len_spin.setValue(params.get("max_model_len", 0))
+            vllm_layout.addRow("Max Model Len:", max_len_spin)
+
+            trust_cb = QCheckBox("Trust Remote Code")
+            trust_cb.setChecked(params.get("trust_remote_code", True))
+            vllm_layout.addRow("", trust_cb)
+
+            layout.addWidget(vllm_group)
+
+        elif engine == "sglang":
+            sglang_group = QGroupBox("sglang")
+            sglang_layout = QFormLayout(sglang_group)
+
+            tp_spin = QSpinBox()
+            tp_spin.setRange(1, 8)
+            tp_spin.setValue(params.get("tensor_parallel_size", 1))
+            sglang_layout.addRow("Tensor Parallel:", tp_spin)
+
+            mem_spin = QDoubleSpinBox()
+            mem_spin.setRange(0.1, 1.0)
+            mem_spin.setSingleStep(0.05)
+            mem_spin.setValue(params.get("mem_fraction_static", 0.9))
+            sglang_layout.addRow("Mem Fraction:", mem_spin)
+
+            trust_cb = QCheckBox("Trust Remote Code")
+            trust_cb.setChecked(params.get("trust_remote_code", True))
+            sglang_layout.addRow("", trust_cb)
+
+            layout.addWidget(sglang_group)
+
+        # Przyciski
+        button_box = QDialogButtonBox(
+            QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel
+        )
+        button_box.button(QDialogButtonBox.StandardButton.Ok).setText("Zapisz")
+        button_box.button(QDialogButtonBox.StandardButton.Cancel).setText("Anuluj")
+        layout.addWidget(button_box)
+
+        def save_params():
+            new_params = {
+                "host": host_edit.text().strip(),
+                "port": port_spin.value(),
+            }
+            if engine == "llama":
+                new_params["threads"] = threads_spin.value()
+                new_params["ctx_size"] = ctx_spin.value()
+                new_params["gpu_layers"] = gpu_spin.value()
+                new_params["n_predict"] = n_pred_spin.value()
+                new_params["flash_attn"] = flash_combo.currentText()
+                new_params["cache_type_k"] = cache_k_combo.currentText()
+                new_params["cache_type_v"] = cache_v_combo.currentText()
+                new_params["verbose"] = verbose_cb.isChecked()
+            elif engine == "vllm":
+                new_params["tensor_parallel_size"] = tp_spin.value()
+                new_params["gpu_memory_utilization"] = gpu_mem.value()
+                new_params["max_model_len"] = max_len_spin.value()
+                new_params["trust_remote_code"] = trust_cb.isChecked()
+            elif engine == "sglang":
+                new_params["tensor_parallel_size"] = tp_spin.value()
+                new_params["mem_fraction_static"] = mem_spin.value()
+                new_params["trust_remote_code"] = trust_cb.isChecked()
+
+            cfg[engine]["launch_params"] = new_params
+            config.save_config(cfg)
+            dlg.accept()
+
+        button_box.accepted.connect(save_params)
+        button_box.rejected.connect(dlg.reject)
+
+        dlg.exec()
 
     def _show_command_and_launch(self, engine: str, cmd: str, info: ModelInfo) -> None:
         """Pokazuje dialog z komendą i opcją edycji."""
