@@ -384,9 +384,6 @@ class MainWindow(QMainWindow):
         self.setStatusBar(CustomStatusBar())
         self.status("Gotowe")
 
-        # --- Menu ---
-        self._create_menu()
-
         # --- Dock: GPU monitor ---
         from gui.gpu_widget import GPUMonitorWidget
 
@@ -398,6 +395,9 @@ class MainWindow(QMainWindow):
         self.gpu_widget = GPUMonitorWidget()
         self.gpu_dock.setWidget(self.gpu_widget)
         self.addDockWidget(Qt.DockWidgetArea.RightDockWidgetArea, self.gpu_dock)
+
+        # --- Menu ---
+        self._create_menu()
 
         # Wczytaj konfigurację
         self._load_config_to_ui()
