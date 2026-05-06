@@ -888,6 +888,9 @@ class MainWindow(QMainWindow):
 
         params = cfg.get("llama", {}).get("launch_params", {})
 
+        # DEBUG: Print all params
+        print(f"[DEBUG LLAAMA] params = {params}")
+
         # Use model_path for GGUF files
         model_arg = info.model_path
 
@@ -1284,6 +1287,7 @@ class MainWindow(QMainWindow):
         main_layout.addWidget(button_box)
 
         def save_params():
+            print(f"[DEBUG save_params] engine={engine}, params before={params}")
             new_params = {
                 "host": host_edit.text().strip(),
                 "port": port_spin.value(),
@@ -1328,6 +1332,7 @@ class MainWindow(QMainWindow):
                 new_params["trust_remote_code"] = trust_cb.isChecked()
 
             cfg[engine]["launch_params"] = new_params
+            print(f"[DEBUG save_params] saving new_params={new_params}")
             config.save_config(cfg)
             dlg.accept()
 
