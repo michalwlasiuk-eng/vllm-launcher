@@ -974,8 +974,9 @@ class MainWindow(QMainWindow):
         if params.get("no_direct_io", False):
             cmd_parts.append("--no-direct-io")
 
-        if params.get("numa", False):
-            cmd_parts.append("--numa")
+        numa = params.get("numa", "")
+        if numa:
+            cmd_parts += ["--numa", numa]
 
         lora = params.get("lora", "")
         if lora.strip():
@@ -1146,9 +1147,10 @@ class MainWindow(QMainWindow):
             no_direct_io_cb.setChecked(params.get("no_direct_io", False))
             perf_layout.addRow("No Direct IO:", no_direct_io_cb)
 
-            numa_cb = QCheckBox()
-            numa_cb.setChecked(params.get("numa", False))
-            perf_layout.addRow("NUMA (--numa):", numa_cb)
+            numa_combo = QComboBox()
+            numa_combo.addItems(["", "distribute", "isolate", "numactl"])
+            numa_combo.setCurrentText(params.get("numa", ""))
+            perf_layout.addRow("NUMA (--numa):", numa_combo)
 
             tabs.addTab(perf_widget, "Performance")
 
@@ -1304,7 +1306,7 @@ class MainWindow(QMainWindow):
                 new_params["mmap"] = mmap_cb.isChecked()
                 new_params["mlock"] = mlock_cb.isChecked()
                 new_params["no_direct_io"] = no_direct_io_cb.isChecked()
-                new_params["numa"] = numa_cb.isChecked()
+                new_params["numa"] = numa_combo.currentText()
                 new_params["rope_scaling"] = rope_scaling_combo.currentText()
                 new_params["rope_freq_base"] = rope_freq_base_spin.value()
                 new_params["rope_scale"] = rope_scale_spin.value()
